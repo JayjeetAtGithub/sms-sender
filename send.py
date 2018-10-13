@@ -1,30 +1,61 @@
-import os
-try:
-    import requests
-except ImportError:
-    os.system('pip install requests')
-
-import requests
+import sys
 import urllib
 import csv
 import time
+import requests
 
 auth_key = '144872AoGnBaVgqLh59f59619'
 url = 'http://sms.globehost.com/api/sendhttp.php?'
 
 
-def send_message(contact):
+FILE_ERROR = "MESSAGE FILE NAME OR CONTACTS FILE NAME WAS NOT PROVIDED"
+SUCCESS_MSG = "ALL MESSAGES SENT SUCCESSFULLY"
 
-    message = """
-        Warm up everyone! The wait for JCC is over. 
-        We are all set to begin it this evening at 5:45 PM in LG 11,12 and 13. 
-        Pull up your socks, pick up your pens, set your mind straight and put down your logic.
-        May the best team win. 
-        Note : On spot Registrations are welcome. Please carry a pen with yourselves.
 
-        Register at jcc.nitdgplug.org
-        """
+def read_message(file_name):
+    """
+    Reads the message content from file
+    and returns the message as a string.
+    """
+    message_body = None
+    with open(file_name , 'r') as f:
+        message_body = str(f.read())
+    return message_body
 
+
+def read_contacts_from_csv(file_name , column_number):
+    """
+    Reads contacts numbers from CSV files into array and
+    returns the array.
+    """
+    contacts_array = []
+    with open(file_name , 'rb') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            contacts_array.append(row[column_number])
+    return contacts_array
+
+
+
+def remove_redundant_contacts(contacts):
+    """
+    Removes the duplicats contacts from the array.
+    """
+    contacts.sort()
+    visited = 0
+    aux = []
+    for contact in contacts:
+        if visited != contact:
+            aux.append(contact)
+            visited = contact
+    return aux
+
+
+
+def send_message(contact,message):
+    """
+    Sends the message to the contact
+    """
     data = {
         'authkey': auth_key,
         'mobiles': contact,
@@ -39,24 +70,48 @@ def send_message(contact):
     return r.status_code
 
 
+def sms_sender(message_file_name,contacts_file_name,remove_redundant):
+    """
+    Sends sms with message given in message_file
+    to all contacts in contacts file and
+    also removes redundant contacts
+    """
+    if message_file_name and contacts_file_name:
+        contacts_array = read_contacts_from_csv(contacts_file_name,2)
+        message_content = read_message(message_file_name)
+        if remove_redundant:
+            contacts_array = remove_redundant_contacts(contacts_array)
+        
+        for c in contacts_array:
+            send_message(c,message_content)
+            time.sleep(2)
 
-"""Array of contacts"""
-contacts_array = [8436500886]
+        print(SUCCESS_MSG)
+    else:
+        print(FILE_ERROR)
 
-contacts_array.sort()
 
-visited = 0
+if __name__ == "__main__":
+    message_file_name = None
+    contacts_file_name = None
+    remove_redundant = False
 
-non_redundant_array = []
+    if sys.argv.count("--message") == 1:
+        index = sys.argv.index("--message")
+        message_file_name = str(sys.argv[index+1])
 
-for contact in contacts_array:
-    if visited != contact:
-        non_redundant_array.append(contact)
-        visited = contact
+    if sys.argv.count("--contacts") == 1:
+        index = sys.argv.index("--contacts")
+        contacts_file_name = str(sys.argv[index+1])
 
-print(len(non_redundant_array))
+    if sys.argv.count("--unique") == 1:
+        remove_redundant = True
 
-for contact in non_redundant_array:
-    send_message(contact)
-    time.sleep(2)
+    sms_sender(message_file_name,contacts_file_name,remove_redundant)
+
+
+
+"""
+python send.py --message msg.txt --contacts cnt.csv
+"""
 
