@@ -24,7 +24,7 @@ def read_message(file_name):
 def read_contacts_from_text_file(file_name):
     """
     Reads the contacts from a text file and
-    stores in an array
+    stores in an array.
     """
     contacts_array = []
     with open(file_name) as f:
@@ -64,7 +64,7 @@ def remove_redundant_contacts(contacts):
 
 def send_message(contact,message):
     """
-    Sends the message to the contact
+    Sends the message to the contact.
     """
     data = {
         'authkey': AUTH_KEY,
@@ -85,7 +85,7 @@ def sms_sender(message_file_name,contacts_file_name,remove_redundant):
     """
     Sends sms with message given in message_file
     to all contacts in contacts file and
-    also removes redundant contacts
+    also removes redundant contacts.
     """
     if message_file_name and contacts_file_name:
         contacts_array = read_contacts_from_csv(contacts_file_name,2)
