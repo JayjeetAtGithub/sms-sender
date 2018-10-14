@@ -4,11 +4,9 @@ import csv
 import time
 import requests
 
-auth_key = '144872AoGnBaVgqLh59f59619'
-url = 'http://sms.globehost.com/api/sendhttp.php?'
-
-
-FILE_ERROR = "MESSAGE FILE NAME OR CONTACTS FILE NAME WAS NOT PROVIDED"
+AUTH_KEY = '144872AoGnBaVgqLh59f59619'
+BASE_URL = 'http://sms.globehost.com/api/sendhttp.php?'
+ERROR_MSG = "MESSAGE FILE NAME OR CONTACTS FILE NAME WAS NOT PROVIDED"
 SUCCESS_MSG = "ALL MESSAGES SENT SUCCESSFULLY"
 
 
@@ -21,6 +19,18 @@ def read_message(file_name):
     with open(file_name , 'r') as f:
         message_body = str(f.read())
     return message_body
+
+
+def read_contacts_from_text_file(file_name):
+    """
+    Reads the contacts from a text file and
+    stores in an array
+    """
+    contacts_array = []
+    with open(file_name) as f:
+        for line in f:
+            contacts_array.append(int(line))
+    return contacts_array
 
 
 def read_contacts_from_csv(file_name , column_number):
@@ -57,7 +67,7 @@ def send_message(contact,message):
     Sends the message to the contact
     """
     data = {
-        'authkey': auth_key,
+        'authkey': AUTH_KEY,
         'mobiles': contact,
         'message': message,
         'sender': 'GNULUG',
@@ -65,9 +75,10 @@ def send_message(contact,message):
     }
 
     data_encoded = urllib.urlencode(data)
-    r = requests.get(url + data_encoded)
+    r = requests.get(BASE_URL + data_encoded)
     print('Message Sent Successfully to ', contact, r.status_code)
     return r.status_code
+
 
 
 def sms_sender(message_file_name,contacts_file_name,remove_redundant):
@@ -88,7 +99,8 @@ def sms_sender(message_file_name,contacts_file_name,remove_redundant):
 
         print(SUCCESS_MSG)
     else:
-        print(FILE_ERROR)
+        print(ERROR_MSG)
+
 
 
 if __name__ == "__main__":
@@ -114,4 +126,3 @@ if __name__ == "__main__":
 """
 python send.py --message msg.txt --contacts cnt.csv
 """
-
