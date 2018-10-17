@@ -1,28 +1,45 @@
-import sys
 from urllib import request , parse
+from db_controller import MySqlConnection
 import csv
 import time
+import sys
 import argparse
+
 
 AUTH_KEY = '144872AoGnBaVgqLh59f59619'
 BASE_URL = 'http://sms.globehost.com/api/sendhttp.php?'
 
-class Messages:
+
+class Logger:
     ERROR_MSG = 'MESSAGE FILE NAME OR CONTACTS FILE NAME WAS NOT PROVIDED'
     SUCCESS_MSG = 'ALL MESSAGES SENT SUCCESSFULLY'
 
 
-class GlobeHostMessanger:
+class GlobehostSMS:
 
     def __init__(self, message_file_name , contacts_file_name , remove_redundant , *args, **kwargs):
         self.message_file_name = message_file_name
         self.contacts_file_name = contacts_file_name
         self.remove_redundant = remove_redundant
 
-    def send_request(self,url):
+    def _send_request(self,url):
+        """
+        Sends the request to the url and returns a Response object.
+        """
         req = request.Request(url , method='GET')
         res = request.urlopen(req)
         return res
+
+    
+    def _get_contacts_from_db(self , options):
+        """
+        Connects to the MySQL Database , queries for contacts and
+        returns a list of contacts.
+        """
+        connection = MySqlConnection(options['username'],options['password'],options['db'])
+        connection.connect_to_database()
+        connection.use_table_and_column(options['table_name'],options['column_name'])
+        return connection.get_contacts_from_database()
 
 
     def read_message(self):
@@ -49,8 +66,11 @@ class GlobeHostMessanger:
         return contacts_array
 
 
-    def read_from_database(self):
-        pass
+    def read_from_database(self,options):
+        """
+        Reads contacts from database
+        """
+        return self._get_contacts_from_db(options)
 
 
     def remove_redundant_contacts(self,contacts):
@@ -68,7 +88,7 @@ class GlobeHostMessanger:
 
 
 
-    def send_message(self,contact,message):
+    def _send_message(self,contact,message):
         """
         Sends the message to the contact.
         """
@@ -81,7 +101,7 @@ class GlobeHostMessanger:
         }
 
         data_encoded = parse.urlencode(data)
-        r = self.send_request(BASE_URL + data_encoded)
+        r = self._send_request(BASE_URL + data_encoded)
         print('Message Sent Successfully to ', contact, r.status_code)
         return r.status_code
 
@@ -100,13 +120,11 @@ class GlobeHostMessanger:
                 contacts_array = self.remove_redundant_contacts(contacts_array)
             
             for c in contacts_array:
-                self.send_message(c,message_content)
+                self._send_message(c,message_content)
                 time.sleep(2)
 
-            print(Messages.SUCCESS_MSG)
+            print(Logger.SUCCESS_MSG)
         else:
-            print(Messages.ERROR_MSG)
-
-
+            print(Logger.ERROR_MSG)
 
 
