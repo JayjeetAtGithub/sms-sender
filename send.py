@@ -1,26 +1,41 @@
 from urllib import request , parse
 from db_controller import MySqlConnection
+from time import gmtime , strftime , sleep
 import csv
-import time
 import sys
 import argparse
 
-
+# Constants
 AUTH_KEY = '144872AoGnBaVgqLh59f59619'
 BASE_URL = 'http://sms.globehost.com/api/sendhttp.php?'
 
 
 class Logger:
+    """
+    Custom Logger to log activities to the stdout
+    """
     ERROR_MSG = 'MESSAGE FILE NAME OR CONTACTS FILE NAME WAS NOT PROVIDED'
     SUCCESS_MSG = 'ALL MESSAGES SENT SUCCESSFULLY'
 
+    def info(self,message):
+        # Information level logging
+        print('{} : {}'.format(strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime()),message))
+
+    def err(self,message,error):
+        # Error level logging
+        sys.stderr.write('{} : {}'.format(message,error))
+
 
 class GlobehostSMS:
+    """
+    Python wrapper over Globehost SMS Service API
+    """
 
-    def __init__(self, message_file_name , contacts_file_name , remove_redundant , *args, **kwargs):
-        self.message_file_name = message_file_name
-        self.contacts_file_name = contacts_file_name
-        self.remove_redundant = remove_redundant
+    def __init__(self, options , *args, **kwargs):
+        self.message_file_name = options['message_file_name']
+        self.contacts_file_name = options['contacts_file_name']
+        self.remove_redundant = options['remove_redundant']
+        self.logger = Logger()
 
     def _send_request(self,url):
         """
@@ -66,7 +81,7 @@ class GlobehostSMS:
         return contacts_array
 
 
-    def read_from_database(self,options):
+    def read_contacts_from_database(self,options):
         """
         Reads contacts from database
         """
@@ -88,7 +103,7 @@ class GlobehostSMS:
 
 
 
-    def _send_message(self,contact,message):
+    def send_message(self,contact,message):
         """
         Sends the message to the contact.
         """
@@ -102,29 +117,17 @@ class GlobehostSMS:
 
         data_encoded = parse.urlencode(data)
         r = self._send_request(BASE_URL + data_encoded)
-        print('Message Sent Successfully to ', contact, r.status_code)
+        self.logger.info('Sent to {} with status {}'.format(contact,r.status_code))
         return r.status_code
 
 
-
-    def sms_sender(self):
+    def send_bulk_message(self,contacts_list,message,sleep_time):
         """
-        Sends sms with message given in message_file
-        to all contacts in contacts file and
-        also removes redundant contacts.
+        Sends the sms to all the contacts in the list
         """
-        if self.message_file_name and self.contacts_file_name:
-            contacts_array = self.read_contacts_from_csv_file(2)
-            message_content = self.read_message()
-            if self.remove_redundant:
-                contacts_array = self.remove_redundant_contacts(contacts_array)
-            
-            for c in contacts_array:
-                self._send_message(c,message_content)
-                time.sleep(2)
+        for contact in contacts_list:
+            self.send_message(contact,message)
+            sleep(min(10,sleep_time))
 
-            print(Logger.SUCCESS_MSG)
-        else:
-            print(Logger.ERROR_MSG)
-
+        self.logger.info(self.logger.SUCCESS_MSG)
 
