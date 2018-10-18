@@ -1,6 +1,7 @@
 from urllib import request , parse
 from db_controller import MySqlConnection
 from time import gmtime , strftime , sleep
+import concurrent.futures
 import csv
 import sys
 import argparse
@@ -14,8 +15,8 @@ class Logger:
     """
     Custom Logger to log activities to the stdout
     """
-    ERROR_MSG = 'MESSAGE FILE NAME OR CONTACTS FILE NAME WAS NOT PROVIDED'
-    SUCCESS_MSG = 'ALL MESSAGES SENT SUCCESSFULLY'
+    ERROR_MSG = 'An error has occurred'
+    SUCCESS_MSG = 'Successfull'
 
     def info(self,message):
         # Information level logging
@@ -23,7 +24,7 @@ class Logger:
 
     def err(self,message,error):
         # Error level logging
-        sys.stderr.write('{} : {}'.format(message,error))
+        print('{} : {}'.format(message,error))
 
 
 class GlobehostSMS:
@@ -121,13 +122,18 @@ class GlobehostSMS:
         return r.status_code
 
 
-    def send_bulk_message(self,contacts_list,message,sleep_time):
+    def send_bulk_message(self,contacts_list,message):
         """
-        Sends the sms to all the contacts in the list
+        Sends the SMS to all the contacts in the list 
+        in parallel using 4 cores
         """
-        for contact in contacts_list:
-            self.send_message(contact,message)
-            sleep(min(10,sleep_time))
-
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_url = { executor.submit(self.send_message,contact,message):contact for contact in contacts_list }
+            for future in concurrent.futures.as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    data = future.result()
+                except Exception as e:
+                    self.logger.err(self.logger.ERROR_MSG,e)
         self.logger.info(self.logger.SUCCESS_MSG)
 

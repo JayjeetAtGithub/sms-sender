@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 
 class MySqlConnection:
+    # Creates a wrapper over sqlalchemy to fetch only contact numbers from db.
 
     def __init__(self, *args, **kwargs):
         self._user_name = args[0]
@@ -8,17 +9,20 @@ class MySqlConnection:
         self._database_name = args[2]
 
     def connect_to_database(self):
+        # Initiates a connection to the required database
         _connection_string = 'mysql://{}:{}@localhost/{}'.format(self._user_name,self._password,self._database_name)
         _engine = create_engine(_connection_string)
         self._connection = _engine.connect()
 
 
     def use_table_and_column(self,table_name,column_name):
+        # Specifies the table and column to be used for fetching contacts
         self._table_name = table_name
         self._column_name = column_name
 
 
     def get_contacts_from_database(self):
+        # Reads the contacts from the database and returns a list of contacts
         _query_string = 'select {} from {}'.format(self._column_name,self._table_name)
         _result = self._connection.execute(_query_string)
         _result_list = [row[self._column_name] for row in _result]
